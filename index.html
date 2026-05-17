@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外牆骨架簡易結構計算系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f9f8f5;
+    --border: #e2e0da;
+    --border-strong: #c8c5bc;
+    --text: #1a1917;
+    --text-sub: #6b6760;
+    --text-light: #9b9891;
+    --accent: #2563d4;
+    --accent-light: #eff4ff;
+    --ok: #16a34a;
+    --ok-bg: #f0fdf4;
+    --ok-border: #bbf7d0;
+    --ng: #dc2626;
+    --ng-bg: #fef2f2;
+    --ng-border: #fecaca;
+    --warn: #d97706;
+    --warn-bg: #fffbeb;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.04);
+    --r: 10px;
+    --r-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── Header ─── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 60px;
+  }
+  .header-logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .header-logo svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; }
+  .header-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; color: var(--text-sub); margin-top: 1px; }
+  .header-badge {
+    margin-left: auto;
+    font-size: 11px; font-weight: 500;
+    color: var(--text-sub);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ─── Tab Nav ─── */
+  .tab-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+  }
+  .tab-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0;
+  }
+  .tab-btn {
+    padding: 14px 22px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sub);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 7px;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-light);
+    flex-shrink: 0;
+  }
+  .tab-btn.active .tab-dot { background: var(--accent); }
+
+  /* ─── Main Layout ─── */
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 32px 60px;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── Section ─── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-sub);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── Card ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card + .card { margin-top: 16px; }
+
+  /* ─── Input Grid ─── */
+  .input-grid {
+    display: grid;
+    gap: 14px 20px;
+  }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sub);
+    letter-spacing: 0.2px;
+  }
+  .field-inner { position: relative; }
+  .field input, .field select {
+    width: 100%;
+    height: 38px;
+    padding: 0 36px 0 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field select { padding-right: 12px; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; }
+  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,212,0.10); }
+  .field-unit {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--text-light);
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .field input[readonly] {
+    background: var(--surface2);
+    color: var(--text-sub);
+    cursor: default;
+  }
+
+  /* ─── Divider ─── */
+  .divider {
+    border: none;
+    border-top: 1px dashed var(--border);
+    margin: 20px 0;
+  }
+
+  /* ─── Calc Button ─── */
+  .calc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--r-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Noto Sans TC', sans-serif;
+    box-shadow: 0 2px 8px rgba(37,99,212,0.25);
+  }
+  .calc-btn:hover { background: #1d52b8; box-shadow: 0 4px 12px rgba(37,99,212,0.35); transform: translateY(-1px); }
+  .calc-btn:active { transform: translateY(0); }
+  .calc-btn svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2.5; }
+  .btn-row { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+
+  /* ─── Result Panel ─── */
+  .result-panel {
+    display: none;
+    margin-top: 20px;
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.2s ease;
+  }
+  .result-panel.show { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .result-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .result-header.ok-header { background: var(--ok-bg); color: var(--ok); border-bottom: 1px solid var(--ok-border); }
+  .result-header.ng-header { background: var(--ng-bg); color: var(--ng); border-bottom: 1px solid var(--ng-border); }
+  .result-header svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+  .result-body {
+    background: var(--surface);
+    padding: 20px;
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .result-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+  }
+  .result-item-label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; font-weight: 500; }
+  .result-item-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .result-item-unit { font-size: 11px; color: var(--text-light); font-weight: 400; }
+
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .check-row.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-border); }
+  .check-row.ng { background: var(--ng-bg); color: var(--ng); border: 1px solid var(--ng-border); }
+  .check-row svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+
+  .result-formula {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #f8f7f4;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-sub);
+    line-height: 1.9;
+  }
+
+  /* ─── Steel Selector ─── */
+  .steel-select-wrap { position: relative; }
+  .steel-info {
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: var(--accent-light);
+    border: 1px solid #bfd4f9;
+    border-radius: var(--r-sm);
+    font-size: 12px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.8;
+  }
+
+  /* ─── Glass ratio table ─── */
+  .ratio-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  .ratio-table th {
+    background: var(--surface2);
+    padding: 8px 12px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    font-size: 11px;
+  }
+  .ratio-table td {
+    padding: 7px 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .ratio-table tr.highlighted td { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+  /* ─── Info box ─── */
+  .info-box {
+    padding: 12px 14px;
+    background: var(--warn-bg);
+    border: 1px solid #fde68a;
+    border-radius: var(--r-sm);
+    font-size: 12px;
+    color: var(--warn);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .info-box svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
+
+  .floor-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:6px 0; border-bottom:1px solid var(--border); }
+  .floor-row input { height:36px; border:1px solid var(--border-strong); border-radius:6px; padding:0 10px; font-family:'JetBrains Mono',monospace; font-size:13px; background:var(--surface); outline:none; }
+  .floor-row input:focus { border-color:var(--accent); }
+  .floor-row input.floor-name { width:72px; }
+  .floor-row input.floor-ht { width:80px; }
+  .floor-row .floor-label { font-size:12px; color:var(--text-sub); white-space:nowrap; }
+  .floor-row .del-btn { width:32px;height:32px;border:none;background:none;cursor:pointer;color:var(--text-light);font-size:18px;display:flex;align-items:center;justify-content:center;border-radius:4px;flex-shrink:0;margin-left:auto; }
+  .floor-row .del-btn:hover { background:var(--ng-bg);color:var(--ng); }
+  #wind-floor-table td { font-family:'JetBrains Mono',monospace; font-size:12px; }
+  #wind-floor-table tr.max-row td { background:#fffbeb; color:var(--warn); font-weight:700; }
+  #wind-floor-table tr.ph-row td { background:#f0f9ff; color:#0369a1; }
+  #wind-floor-table tr.rf-row td { background:#fdf4ff; color:#7c3aed; }
+
+    .main { padding: 20px 16px 40px; }
+    header { padding: 0 16px; }
+    .tab-nav { padding: 0 16px; }
+    .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr; }
+    .tab-btn { padding: 12px 14px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    </div>
+    <div>
+      <div class="header-title">外牆骨架簡易結構計算系統</div>
+      <div class="header-sub">Curtain Wall Frame Structural Check</div>
+    </div>
+    <div class="header-badge">Fyc = 2550 kg/cm²</div>
+  </div>
+</header>
+
+<div class="tab-nav">
+  <div class="tab-nav-inner">
+    <button class="tab-btn active" onclick="switchTab('wind')">
+      <span class="tab-dot"></span>風壓推算
+    </button>
+    <button class="tab-btn" onclick="switchTab('frame')">
+      <span class="tab-dot"></span>骨架直料
+    </button>
+    <button class="tab-btn" onclick="switchTab('angle')">
+      <span class="tab-dot"></span>角鐵固定點
+    </button>
+    <button class="tab-btn" onclick="switchTab('weld')">
+      <span class="tab-dot"></span>焊道
+    </button>
+    <button class="tab-btn" onclick="switchTab('glass')">
+      <span class="tab-dot"></span>玻璃尺寸檢核
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- TAB: 風壓推算 -->
+  <div id="tab-wind" class="tab-panel active">
+
+    <div class="section-title">基本參數</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>縣市 / 地區</label>
+          <div class="field-inner">
+            <select id="w1-city" onchange="onCityChange()">
+              <optgroup label="47.5 m/s 區"><option value="47.5">花蓮市、吉安鄉、恆春鎮、滿州鄉</option></optgroup>
+              <optgroup label="42.5 m/s 區"><option value="42.5">基隆市、台北市、宜蘭沿海、花蓮山線</option></optgroup>
+              <optgroup label="37.5 m/s 區"><option value="37.5" selected>新北市大部分、桃園縣、台南沿海、高雄市區</option></optgroup>
+              <optgroup label="35 m/s 區"><option value="35">金門</option></optgroup>
+              <optgroup label="33 m/s 區"><option value="33">澎湖縣</option></optgroup>
+              <optgroup label="32.5 m/s 區"><option value="32.5">新竹市、苗栗縣、台中市大部分、新營</option></optgroup>
+              <optgroup label="27.5 m/s 區"><option value="27.5">彰化縣、南投市、雲林縣、嘉義市</option></optgroup>
+              <optgroup label="22.5 m/s 區"><option value="22.5">南投縣內陸（竹山、水里等）</option></optgroup>
+              <optgroup label="外島">
+                <option value="65">蘭嶼、綠島</option>
+                <option value="57">彭佳嶼</option>
+                <option value="42">馬祖</option>
+                <option value="40">琉球嶼</option>
+              </optgroup>
+              <option value="custom">自訂風速</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>基本設計風速 V₁₀</label>
+          <div class="field-inner">
+            <input type="number" id="w1-v10" value="37.5" step="0.5">
+            <span class="field-unit">m/s</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>用途係數 I</label>
+          <div class="field-inner">
+            <select id="w1-I">
+              <option value="0.8">0.8（臨時性）</option>
+              <option value="1.0" selected>1.0（一般建築）</option>
+              <option value="1.1">1.1（公眾使用）</option>
+              <option value="1.25">1.25（重要設施）</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>地形係數 Kzt</label>
+          <div class="field-inner">
+            <input type="number" id="w1-kzt" value="1.0" step="0.05">
+            <span class="field-unit">（平地取 1.0）</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>風壓係數 Cp</label>
+          <div class="field-inner">
+            <select id="w1-cp" onchange="onCpChange()">
+              <optgroup label="外牆被覆物 / 帷幕牆（第3章）">
+                <option value="1.3">+1.3（正壓，迎風面）</option>
+                <option value="1.5">+1.5（正壓，角隅局部）</option>
+                <option value="-1.8">-1.8（負壓，一般區）</option>
+                <option value="-2.8">-2.8（負壓，角隅加強區）</option>
+              </optgroup>
+              <optgroup label="主結構（第2章）">
+                <option value="0.8">+0.8（迎風面）</option>
+                <option value="-0.5">-0.5（背風面）</option>
+              </optgroup>
+              <option value="custom">自訂</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="w1-cp-custom-row" style="display:none">
+          <label>自訂 Cp 值</label>
+          <div class="field-inner">
+            <input type="number" id="w1-cp-val" value="1.3" step="0.05">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">地況參數</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>地況類別</label>
+          <div class="field-inner">
+            <select id="w1-exposure" onchange="onExposureChange()">
+              <option value="A">地況 A（市中心高樓密集）</option>
+              <option value="B" selected>地況 B（一般郊區、市區）</option>
+              <option value="C">地況 C（開闊地、海岸）</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>梯度高 zg</label>
+          <div class="field-inner">
+            <input type="number" id="w1-zg" value="450" step="10">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>高度指數 α</label>
+          <div class="field-inner">
+            <input type="number" id="w1-alpha" value="0.20" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="info-box" style="margin-top:12px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Kz = 2.774 × (z/zg)^(2α)，z &lt; 5m 時以 z=5m 計算。地況A：α=0.25，zg=550m。地況B：α=0.20，zg=450m。地況C：α=0.15，zg=350m。
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">陣風反應因子 G</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>建築物類型</label>
+          <div class="field-inner">
+            <select id="w1-gtype" onchange="onGTypeChange()">
+              <option value="table">普通建築物（查表 C2.9）</option>
+              <option value="manual">手動輸入（柔性建築 / 指定）</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="w1-g-table-row">
+          <label>建築物高度（查表）</label>
+          <div class="field-inner">
+            <select id="w1-g-h" onchange="lookupG()">
+              <option value="5">5 m</option>
+              <option value="10">10 m</option>
+              <option value="15">15 m</option>
+              <option value="20">20 m</option>
+              <option value="25">25 m</option>
+              <option value="30" selected>30 m</option>
+              <option value="40">40 m</option>
+              <option value="50">50 m</option>
+              <option value="60">60 m</option>
+              <option value="80">80 m</option>
+              <option value="100">100 m</option>
+              <option value="150">150 m</option>
+              <option value="200">200 m</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>G 採用值</label>
+          <div class="field-inner">
+            <input type="number" id="w1-G" value="2.05" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div id="w1-g-note" style="margin-top:10px;font-size:12px;font-family:monospace;color:var(--text-sub);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 14px">
+        地況B，建築高度30m → G = 2.05（規範表C2.9(b)）
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">建築物高度</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>建築物總高 H</label>
+          <div class="field-inner">
+            <input type="number" id="w1-total-h" value="20" step="1" min="1">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>計算間距</label>
+          <div class="field-inner" style="height:38px;display:flex;align-items:center;padding:0 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text-sub)">
+            每 5 m 計算一個節點
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="calc-btn" onclick="calcWindFloors()">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          計算逐段風壓
+        </button>
+      </div>
+    </div>
+
+    <div id="wind-floor-result" style="display:none;margin-top:20px">
+      <div class="section-title">各高度段設計風壓</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="ratio-table" style="margin:0">
+          <thead>
+            <tr>
+              <th>高度 z (m)</th>
+              <th>Kz</th>
+              <th>q(z) (kg/m²)</th>
+              <th>G</th>
+              <th>Cp</th>
+              <th>設計風壓 p (kg/m²)</th>
+            </tr>
+          </thead>
+          <tbody id="wind-floor-tbody"></tbody>
+        </table>
+      </div>
+      <div id="wind-max-row" style="margin-top:12px"></div>
+      <div id="wind-apply-row" style="margin-top:10px">
+        <button class="calc-btn" style="background:#059669;box-shadow:0 2px 8px rgba(5,150,105,0.25)" onclick="applyWindToFrame()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:white;fill:none;stroke-width:2.5"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="21" x2="12" y2="3"/></svg>
+          將最大風壓帶入骨架計算
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: 骨架 -->
+  <div id="tab-frame" class="tab-panel">
+
+    <div class="section-title">基本參數</div>
+    <div class="card">
+      <div class="input-grid cols-2">
+        <div class="field">
+          <label>設計風壓 WL1 <span style="font-size:11px;color:var(--text-sub);font-weight:400">（可由風壓推算頁帶入）</span></label>
+          <div class="field-inner">
+            <input type="number" id="f-wl1" value="150" step="1">
+            <span class="field-unit">kg/m²</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>垂直跨度 SV</label>
+          <div class="field-inner">
+            <input type="number" id="f-sv" value="4.5" step="0.1">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>水平間距 SH</label>
+          <div class="field-inner">
+            <input type="number" id="f-sh" value="1.0" step="0.05">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Fyc（鋼材降伏）</label>
+          <div class="field-inner">
+            <input type="number" id="f-fyc" value="2550" step="10">
+            <span class="field-unit">kg/cm²</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>剪應力分母 <span style="color:var(--ng);font-size:11px;font-weight:600">必填・影響數值</span></label>
+          <div class="field-inner">
+            <select id="f-fvx-denom">
+              <option value="2">2d·t（4區 / 一般外牆）</option>
+              <option value="1">d·t（5區 / 高風壓區）</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">C 型鋼斷面</div>
+    <div class="card">
+      <div class="field" style="margin-bottom:14px">
+        <label>斷面規格選擇</label>
+        <select id="f-steel-preset" onchange="applyFramePreset()">
+          <option value="">── 選擇常用規格 ──</option>
+          <option value="C150_23">C150×65×20×2.3 (As=7.01, Ws=5.5, Ixs=246, Sxs=33)</option>
+          <option value="C150_30">C150×65×20×3.0 (As=8.97, Ws=7.04, Ixs=311, Sxs=41.6)</option>
+          <option value="C150_32">C150×65×20×3.2 (As=9.57, Ws=7.51, Ixs=332, Sxs=44.4)</option>
+          <option value="2C150_32">2C-150×65×20×3.2 雙拼 (As=9.57×2, Ws=7.51×2, Ixs=332, Sxs=44.4)</option>
+          <option value="2C200_32">2C-200×75×20×3.2 雙拼 (As=14.55, Ws=11.4, Ixs=871, Sxs=87.1)</option>
+          <option value="BOX150_32">□150×75×3.2 方管 (As=13.99, Ws=10.98, Ixs=416.6, Sxs=55.5)</option>
+          <option value="custom">自訂</option>
+        </select>
+      </div>
+      <div id="f-steel-info" class="steel-info" style="display:none"></div>
+      <hr class="divider">
+      <div class="input-grid cols-4">
+        <div class="field">
+          <label>斷面深 d</label>
+          <div class="field-inner">
+            <input type="number" id="f-d" value="150" step="1">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>板厚 t</label>
+          <div class="field-inner">
+            <input type="number" id="f-t" value="2.3" step="0.1">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>翼板寬 b</label>
+          <div class="field-inner">
+            <input type="number" id="f-b" value="65" step="1">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>斷面積 As</label>
+          <div class="field-inner">
+            <input type="number" id="f-as" value="7.01" step="0.01">
+            <span class="field-unit">cm²</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>單位重 Ws</label>
+          <div class="field-inner">
+            <input type="number" id="f-ws" value="5.5" step="0.01">
+            <span class="field-unit">kg/m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>慣性矩 Ixs</label>
+          <div class="field-inner">
+            <input type="number" id="f-ixs" value="246" step="1">
+            <span class="field-unit">cm⁴</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>斷面模數 Sxs</label>
+          <div class="field-inner">
+            <input type="number" id="f-sxs" value="33" step="0.1">
+            <span class="field-unit">cm³</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>雙拼 2C</label>
+          <div class="field-inner">
+            <select id="f-double">
+              <option value="1">單根</option>
+              <option value="2">雙拼 2C</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="calc-btn" onclick="calcFrame()">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          計算校核
+        </button>
+      </div>
+    </div>
+
+    <div id="frame-result" class="result-panel"></div>
+  </div>
+
+  <!-- ══════════ TAB: 角鐵 ══════════ -->
+  <div id="tab-angle" class="tab-panel">
+
+    <div class="section-title">荷載參數（由骨架計算帶入或自行輸入）</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>水平剪力 Vx（骨架計算值）</label>
+          <div class="field-inner">
+            <input type="number" id="a-vx" value="421.9" step="0.1">
+            <span class="field-unit">kg</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>骨架單位重 Ws</label>
+          <div class="field-inner">
+            <input type="number" id="a-ws" value="5.5" step="0.01">
+            <span class="field-unit">kg/m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>垂直跨度 SV</label>
+          <div class="field-inner">
+            <input type="number" id="a-sv" value="4.5" step="0.1">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>水平間距 SH</label>
+          <div class="field-inner">
+            <input type="number" id="a-sh" value="1.0" step="0.05">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>鐵件延伸長度</label>
+          <div class="field-inner">
+            <input type="number" id="a-ext" value="185" step="5">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:12px">板材重量 Wg</div>
+
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>板材種類</label>
+          <div class="field-inner">
+            <select id="a-mat" onchange="onMatChange()">
+              <option value="sandwich">三明治板</option>
+              <option value="alupanel">鋁包板</option>
+              <option value="glass">玻璃</option>
+              <option value="custom">自訂重量</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 三明治板：固定重量，只顯示說明 -->
+        <div class="field" id="mat-sandwich-row" style="display:none">
+          <label>基本重量（×1.5 安全係數）</label>
+          <div class="field-inner">
+            <input type="number" id="a-mat-sandwich-base" value="16.9" step="0.1" oninput="calcMatWg()">
+            <span class="field-unit">kg/m²</span>
+          </div>
+        </div>
+
+        <!-- 鋁包板：輸入厚度換算 -->
+        <div class="field" id="mat-alu-row" style="display:none">
+          <label>鋁板厚度（密度 2.7 g/cm³）</label>
+          <div class="field-inner">
+            <input type="number" id="a-mat-alu-t" value="3" step="0.5" oninput="calcMatWg()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+
+        <!-- 玻璃：輸入厚度換算 -->
+        <div class="field" id="mat-glass-row" style="display:none">
+          <label>玻璃厚度（密度 2.5 g/cm³）</label>
+          <div class="field-inner">
+            <input type="number" id="a-mat-glass-t" value="8" step="1" oninput="calcMatWg()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>設計重量 Wg（含安全係數）</label>
+          <div class="field-inner">
+            <input type="number" id="a-wg" value="25.35" step="0.01">
+            <span class="field-unit">kg/m²</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 換算說明 -->
+      <div id="mat-formula-note" style="margin-top:10px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text-sub);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:none"></div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">角鐵規格</div>
+    <div class="card">
+      <div class="field" style="margin-bottom:14px">
+        <label>角鐵選擇</label>
+        <select id="a-angle-preset" onchange="applyAnglePreset()">
+          <option value="">── 選擇規格 ──</option>
+          <option value="L125_75_7">L-125×75×7</option>
+          <option value="L150_90_9">L-150×90×9</option>
+          <option value="L75_75_6">L-75×75×6</option>
+          <option value="custom">自訂</option>
+        </select>
+      </div>
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>角鐵深 dv</label>
+          <div class="field-inner">
+            <input type="number" id="a-d" value="125" step="1">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>板厚 tv</label>
+          <div class="field-inner">
+            <input type="number" id="a-tv" value="7" step="1">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>斷面積 As</label>
+          <div class="field-inner">
+            <input type="number" id="a-as" value="13.62" step="0.01">
+            <span class="field-unit">cm²</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>斷面模數 Sx</label>
+          <div class="field-inner">
+            <input type="number" id="a-sx" value="26.1" step="0.1">
+            <span class="field-unit">cm³</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Fy（角鐵）</label>
+          <div class="field-inner">
+            <input type="number" id="a-fy" value="2500" step="50">
+            <span class="field-unit">kg/cm²</span>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="calc-btn" onclick="calcAngle()">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          計算校核
+        </button>
+      </div>
+    </div>
+
+    <div id="angle-result" class="result-panel"></div>
+  </div>
+
+
+  <!-- ══════════ TAB: 焊道 ══════════ -->
+  <div id="tab-weld" class="tab-panel">
+
+    <div class="section-title">荷載來源（由骨架自動計算）</div>
+    <div class="card">
+      <div class="info-box" style="margin-bottom:16px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        RHmax / Rvmax / Mmax 由骨架計算的 Vx 與以下參數推算，或直接手動輸入。
+      </div>
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>骨架剪力 Vx</label>
+          <div class="field-inner">
+            <input type="number" id="w-vx" value="" step="0.1" placeholder="從骨架帶入">
+            <span class="field-unit">kg</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>骨架自重 Ws</label>
+          <div class="field-inner">
+            <input type="number" id="w-ws" value="10.98" step="0.01">
+            <span class="field-unit">kg/m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>垂直跨度 SV</label>
+          <div class="field-inner">
+            <input type="number" id="w-sv" value="5.52" step="0.1">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>水平間距 SH</label>
+          <div class="field-inner">
+            <input type="number" id="w-sh" value="1.1" step="0.05">
+            <span class="field-unit">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>鐵件延伸長度</label>
+          <div class="field-inner">
+            <input type="number" id="w-ext" value="800" step="10">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div class="section-title" style="margin-bottom:12px">板材重量 Wg</div>
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>板材種類</label>
+          <div class="field-inner">
+            <select id="w-mat" onchange="onWeldMatChange()">
+              <option value="sandwich">三明治板</option>
+              <option value="alupanel">鋁包板</option>
+              <option value="glass">玻璃</option>
+              <option value="custom">自訂重量</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="wmat-sandwich-row" style="display:none">
+          <label>基本重量（×1.5 安全係數）</label>
+          <div class="field-inner">
+            <input type="number" id="w-mat-sandwich-base" value="16.9" step="0.1" oninput="calcWeldMatWg()">
+            <span class="field-unit">kg/m²</span>
+          </div>
+        </div>
+        <div class="field" id="wmat-alu-row" style="display:none">
+          <label>鋁板厚度（密度 2.7 g/cm³）</label>
+          <div class="field-inner">
+            <input type="number" id="w-mat-alu-t" value="3" step="0.5" oninput="calcWeldMatWg()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field" id="wmat-glass-row" style="display:none">
+          <label>玻璃厚度（密度 2.5 g/cm³）</label>
+          <div class="field-inner">
+            <input type="number" id="w-mat-glass-t" value="8" step="1" oninput="calcWeldMatWg()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>設計重量 Wg（含安全係數）</label>
+          <div class="field-inner">
+            <input type="number" id="w-wg" value="25.35" step="0.01">
+            <span class="field-unit">kg/m²</span>
+          </div>
+        </div>
+      </div>
+      <div id="wmat-formula-note" style="margin-top:10px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text-sub);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:none"></div>
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="calc-btn" style="background:var(--text-sub); box-shadow:none" onclick="importFrameToWeld()">
+          <svg viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="21" x2="12" y2="3"/></svg>
+          從骨架帶入 Vx / Ws / SV / SH
+        </button>
+      </div>
+      <hr class="divider">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:10px">以下由上方參數自動計算，或直接手動輸入：</div>
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>水平反力 RHmax = 2Vx</label>
+          <div class="field-inner">
+            <input type="number" id="w-rh" value="" step="0.1" placeholder="自動計算">
+            <span class="field-unit">kg</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>垂直反力 Rvmax</label>
+          <div class="field-inner">
+            <input type="number" id="w-rv" value="" step="0.1" placeholder="自動計算">
+            <span class="field-unit">kg</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>彎矩 Mmax = Rvmax × ext</label>
+          <div class="field-inner">
+            <input type="number" id="w-mmax" value="" step="0.1" placeholder="自動計算">
+            <span class="field-unit">kg.m</span>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="calc-btn" style="background:#059669; box-shadow:0 2px 8px rgba(5,150,105,0.25)" onclick="deriveWeldLoads()">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          計算反力（帶入下方）
+        </button>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">焊道規格</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>焊道長 Lw（單邊）</label>
+          <div class="field-inner">
+            <input type="number" id="w-lw" value="8" step="0.5">
+            <span class="field-unit">cm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>焊道邊數</label>
+          <div class="field-inner">
+            <select id="w-sides">
+              <option value="2">2 邊</option>
+              <option value="1">1 邊</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>焊材強度 Fuw</label>
+          <div class="field-inner">
+            <input type="number" id="w-fuw" value="4900" step="100">
+            <span class="field-unit">kg/cm²</span>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="calc-btn" onclick="calcWeld()">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          計算焊喉
+        </button>
+      </div>
+    </div>
+    <div id="weld-result" class="result-panel"></div>
+  </div>
+
+  <!-- ══════════ TAB: 玻璃 ══════════ -->
+  <div id="tab-glass" class="tab-panel">
+
+    <div class="section-title">玻璃種類與厚度</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>玻璃種類</label>
+          <div class="field-inner">
+            <select id="g-type" onchange="onGlassTypeChange()">
+              <option value="tempered">強化玻璃（單片）</option>
+              <option value="laminated_tempered">強化膠合玻璃</option>
+              <option value="heat_strength">半強化玻璃（單片）</option>
+              <option value="laminated_hs">半強化膠合玻璃</option>
+              <option value="annealed">一般退火玻璃（單片）</option>
+              <option value="custom">自訂</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>容許應力 αg</label>
+          <div class="field-inner">
+            <input type="number" id="g-ag" value="1200" step="10">
+            <span class="field-unit">kg/cm²</span>
+          </div>
+        </div>
+        <div class="field" id="g-note-field" style="display:flex;align-items:flex-end">
+          <div id="g-type-note" style="font-size:11px;color:var(--text-sub);padding-bottom:6px;line-height:1.6"></div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 單片玻璃 -->
+      <div id="g-single-row" class="input-grid cols-3">
+        <div class="field">
+          <label>玻璃厚度 h1</label>
+          <div class="field-inner">
+            <input type="number" id="g-h1" value="8" step="1" oninput="updateGlassRatio()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 膠合玻璃 -->
+      <div id="g-lam-row" class="input-grid cols-3" style="display:none">
+        <div class="field">
+          <label>外片厚度（計算用）</label>
+          <div class="field-inner">
+            <input type="number" id="g-h1-outer" value="8" step="1" oninput="syncLamH1()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>內片厚度（參考）</label>
+          <div class="field-inner">
+            <input type="number" id="g-h1-inner" value="8" step="1">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>膠膜種類</label>
+          <div class="field-inner">
+            <select id="g-pvb">
+              <option value="pvb">PVB 膠膜</option>
+              <option value="sgp">SGP 膠膜</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">尺寸與風壓</div>
+    <div class="card">
+      <div class="input-grid cols-3">
+        <div class="field">
+          <label>長邊 H (SV)</label>
+          <div class="field-inner">
+            <input type="number" id="g-sv" value="1785" step="10" oninput="updateGlassRatio()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>短邊 W (SH)</label>
+          <div class="field-inner">
+            <input type="number" id="g-sh" value="1045" step="10" oninput="updateGlassRatio()">
+            <span class="field-unit">mm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>長寬比 SV/SH</label>
+          <div class="field-inner">
+            <input type="number" id="g-ratio" readonly>
+          </div>
+        </div>
+        <div class="field">
+          <label>設計風壓 WLG</label>
+          <div class="field-inner">
+            <input type="number" id="g-wlg" value="360" step="10">
+            <span class="field-unit">kg/m²</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>彈性係數 Eg</label>
+          <div class="field-inner">
+            <input type="number" id="g-eg" value="700000" step="10000">
+            <span class="field-unit">kg/m²</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">αα / ββ 係數（查表）</div>
+    <div class="card">
+      <div class="info-box" style="margin-bottom:14px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        膠合玻璃以<b>外片厚度</b>計算應力與撓度，容許撓度以 SH/60 為基準。
+      </div>
+      <table class="ratio-table" id="ratio-table">
+        <thead>
+          <tr>
+            <th>SV/SH 範圍</th>
+            <th>αα</th>
+            <th>ββ</th>
+          </tr>
+        </thead>
+        <tbody id="ratio-table-body"></tbody>
+      </table>
+      <hr class="divider">
+      <div class="input-grid cols-2">
+        <div class="field">
+          <label>αα（採用值）</label>
+          <div class="field-inner">
+            <input type="number" id="g-aa" value="0.1" step="0.01">
+          </div>
+        </div>
+        <div class="field">
+          <label>ββ（採用值）</label>
+          <div class="field-inner">
+            <input type="number" id="g-bb" value="0.53" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="calc-btn" onclick="calcGlass()">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          計算校核
+        </button>
+      </div>
+    </div>
+
+    <div id="glass-result" class="result-panel"></div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// = Wind Pressure Calc (Kz method, Taiwan Wind Code 104.1) =
+// q(z) = 0.06 x Kz x Kzt x V10^2 x I^2
+// Kz = 2.774 x (z/zg)^(2*alpha), z_min=5m
+// p = q(z) x G x Cp
+// ============================================================
+
+// 地況預設值
+var EXPOSURE_DEFAULTS = {
+  A: { alpha: 0.25, zg: 550 },
+  B: { alpha: 0.20, zg: 450 },
+  C: { alpha: 0.15, zg: 350 }
+};
+
+// G 查表 (規範表C2.9) [地況A, 地況B, 地況C]
+var G_TABLE = {
+  5:   [2.79, 2.53, 2.29],
+  10:  [2.57, 2.34, 2.13],
+  15:  [2.45, 2.22, 2.05],
+  20:  [2.37, 2.15, 1.99],
+  25:  [2.31, 2.10, 1.95],
+  30:  [2.27, 2.05, 1.92],
+  40:  [2.21, 1.99, 1.88],
+  50:  [2.16, 1.95, 1.85],
+  60:  [2.13, 1.92, 1.82],
+  80:  [2.08, 1.88, 1.79],
+  100: [2.05, 1.85, 1.77],
+  150: [1.99, 1.80, 1.73],
+  200: [1.95, 1.77, 1.71]
+};
+
+function onCityChange() {
+  var val = document.getElementById('w1-city').value;
+  var v10field = document.getElementById('w1-v10');
+  if (val !== 'custom') { v10field.value = val; v10field.readOnly = true; }
+  else { v10field.readOnly = false; v10field.focus(); }
+}
+
+function onCpChange() {
+  var val = document.getElementById('w1-cp').value;
+  document.getElementById('w1-cp-custom-row').style.display = val === 'custom' ? '' : 'none';
+}
+
+function onExposureChange() {
+  var exp = document.getElementById('w1-exposure').value;
+  var def = EXPOSURE_DEFAULTS[exp];
+  document.getElementById('w1-alpha').value = def.alpha;
+  document.getElementById('w1-zg').value    = def.zg;
+  lookupG();
+}
+
+function onGTypeChange() {
+  var type = document.getElementById('w1-gtype').value;
+  document.getElementById('w1-g-table-row').style.display = type === 'table' ? '' : 'none';
+  document.getElementById('w1-g-note').style.display      = type === 'table' ? 'block' : 'none';
+  if (type === 'table') lookupG();
+  else {
+    document.getElementById('w1-G').readOnly = false;
+    document.getElementById('w1-g-note').style.display = 'none';
+  }
+}
+
+function lookupG() {
+  var exp   = document.getElementById('w1-exposure').value;
+  var h     = +document.getElementById('w1-g-h').value;
+  var col   = exp === 'A' ? 0 : exp === 'B' ? 1 : 2;
+  var expName = exp === 'A' ? 'A' : exp === 'B' ? 'B' : 'C';
+  var G = G_TABLE[h] ? G_TABLE[h][col] : 2.05;
+  document.getElementById('w1-G').value    = G;
+  document.getElementById('w1-G').readOnly = true;
+  document.getElementById('w1-g-note').textContent =
+    '地況' + expName + '，建築高度' + h + 'm → G = ' + G + '（規範表C2.9(' + expName.toLowerCase() + ')）';
+}
+
+function calcKz(z, alpha, zg) {
+  var zEff = Math.max(z, 5.0);
+  return 2.774 * Math.pow(zEff / zg, 2 * alpha);
+}
+
+function calcWindFloors() {
+  var V10   = +document.getElementById('w1-v10').value;
+  var I     = +document.getElementById('w1-I').value;
+  var Kzt   = +document.getElementById('w1-kzt').value;
+  var alpha = +document.getElementById('w1-alpha').value;
+  var zg    = +document.getElementById('w1-zg').value;
+  var G     = +document.getElementById('w1-G').value;
+  var cpSel = document.getElementById('w1-cp').value;
+  var Cp    = cpSel === 'custom' ? +document.getElementById('w1-cp-val').value : +cpSel;
+  var H     = +document.getElementById('w1-total-h').value;
+
+  if (!V10) { alert('\u8acb\u5148\u8a2d\u5b9a\u57fa\u672c\u8a2d\u8a08\u98a8\u901f'); return; }
+  if (!H || H <= 0) { alert('\u8acb\u8f38\u5165\u5efa\u7bc9\u7269\u7e3d\u9ad8'); return; }
+
+  var isNeg = Cp < 0;
+  var segments = [];
+  for (var z = 5; z < H; z += 5) segments.push(z);
+  if (segments.length === 0 || segments[segments.length-1] !== H) segments.push(H);
+
+  var maxP = 0, maxIdx = 0;
+  var results = segments.map(function(z, i) {
+    var Kz  = calcKz(z, alpha, zg);
+    var q   = 0.06 * Kz * Kzt * V10 * V10 * I * I;
+    var p   = q * G * Cp;
+    var absP = Math.abs(p);
+    if (absP > maxP) { maxP = absP; maxIdx = i; }
+    return { z: z, Kz: Kz, q: q, p: p, absP: absP };
+  });
+
+  var tbody = document.getElementById('wind-floor-tbody');
+  tbody.innerHTML = '';
+  results.forEach(function(r, i) {
+    var isMax = (i === maxIdx);
+    var tag   = isMax ? ' \u2605' : '';
+    tbody.innerHTML +=
+      '<tr class="' + (isMax ? 'max-row' : '') + '">' +
+      '<td>' + r.z.toFixed(1) + tag + '</td>' +
+      '<td>' + r.Kz.toFixed(4) + '</td>' +
+      '<td>' + r.q.toFixed(3) + '</td>' +
+      '<td>' + G + '</td>' +
+      '<td>' + Cp + '</td>' +
+      '<td><b>' + (isNeg?'-':'') + r.absP.toFixed(2) + '</b></td>' +
+      '</tr>';
+  });
+
+  var mr = results[maxIdx];
+  document.getElementById('wind-max-row').innerHTML =
+    '<div class="check-row ok" style="margin-top:0">' +
+    '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>' +
+    '\u6700\u5927\u8a2d\u8a08\u98a8\u58d3\uff1az = ' + mr.z.toFixed(1) + ' m \u2192 ' +
+    '<b>' + mr.absP.toFixed(2) + ' kg/m\u00b2</b>\uff08' + (isNeg?'\u8ca0\u58d3\u5438\u529b':'\u6b63\u58d3') + '\uff09</div>' +
+    '<div class="result-formula" style="margin-top:8px">' +
+    'Kz = 2.774 \u00d7 (z/zg)^(2\u03b1) = 2.774 \u00d7 (' + mr.z + '/' + zg + ')^(2\u00d7' + alpha + ') = ' + mr.Kz.toFixed(4) + '<br>' +
+    'q(z) = 0.06 \u00d7 Kz \u00d7 Kzt \u00d7 V\u2081\u2080\u00b2 \u00d7 I\u00b2 = 0.06 \u00d7 ' + mr.Kz.toFixed(4) + ' \u00d7 ' + Kzt + ' \u00d7 ' + V10 + '\u00b2 \u00d7 ' + I + '\u00b2 = ' + mr.q.toFixed(3) + ' kg/m\u00b2<br>' +
+    'p = q(z) \u00d7 G \u00d7 Cp = ' + mr.q.toFixed(3) + ' \u00d7 ' + G + ' \u00d7 ' + Cp + ' = ' + mr.p.toFixed(2) + ' kg/m\u00b2</div>';
+
+  window._windResult = { p: mr.p, absP: mr.absP };
+  document.getElementById('wind-floor-result').style.display = 'block';
+}
+
+function applyWindToFrame() {
+  var r = window._windResult;
+  if (!r) return;
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab-frame').classList.add('active');
+  document.querySelectorAll('.tab-btn')[2].classList.add('active');
+  document.getElementById('f-wl1').value = r.absP.toFixed(1);
+  document.getElementById('f-wl1').readOnly = false;
+  alert('\u6700\u5927\u8a2d\u8a08\u98a8\u58d3 ' + r.absP.toFixed(1) + ' kg/m\u00b2 \u5df2\u5e36\u5165\u9aa8\u67b6\u8a08\u7b97\u9801');
+}
+
+
+// = Tab Switch =
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// = Steel Presets =
+const STEEL_DB = {
+  C150_23:   { label:'C150×65×20×2.3', d:150, t:2.3, b:65,  as:7.01,  ws:5.5,   ixs:246,   sxs:33,   dbl:1 },
+  C150_30:   { label:'C150×65×20×3.0', d:150, t:3.0, b:65,  as:8.97,  ws:7.04,  ixs:311,   sxs:41.6, dbl:1 },
+  C150_32:   { label:'C150×65×20×3.2', d:150, t:3.2, b:65,  as:9.57,  ws:7.51,  ixs:332,   sxs:44.4, dbl:1 },
+  '2C150_32':{ label:'2C-150×65×20×3.2 雙拼', d:150, t:3.2, b:65, as:9.57,  ws:7.51,  ixs:332,   sxs:44.4, dbl:2 },
+  '2C200_32':{ label:'2C-200×75×20×3.2 雙拼', d:200, t:4.0, b:75, as:14.55, ws:11.4,  ixs:871,   sxs:87.1, dbl:2 },
+  BOX150_32: { label:'□150×75×3.2 方管', d:150, t:3.2, b:75, as:13.99, ws:10.98, ixs:416.6, sxs:55.5, dbl:1 },
+};
+function applyFramePreset() {
+  const key = document.getElementById('f-steel-preset').value;
+  if (!key || key === 'custom') { document.getElementById('f-steel-info').style.display='none'; return; }
+  const s = STEEL_DB[key];
+  document.getElementById('f-d').value = s.d;
+  document.getElementById('f-t').value = s.t;
+  document.getElementById('f-b').value = s.b;
+  document.getElementById('f-as').value = s.as;
+  document.getElementById('f-ws').value = s.ws;
+  document.getElementById('f-ixs').value = s.ixs;
+  document.getElementById('f-sxs').value = s.sxs;
+  document.getElementById('f-double').value = s.dbl;
+  const info = document.getElementById('f-steel-info');
+  info.style.display='block';
+  info.innerHTML = `${s.label} ｜ As=${s.as} cm² ｜ Ws=${s.ws} kg/m ｜ Ixs=${s.ixs} cm⁴ ｜ Sxs=${s.sxs} cm³${s.dbl===2?' ｜ <b>雙拼 × 2</b>':''}`;
+}
+
+// = Frame Calc =
+function calcFrame() {
+  const wl1  = +document.getElementById('f-wl1').value;
+  const sv   = +document.getElementById('f-sv').value;
+  const sh   = +document.getElementById('f-sh').value;
+  const fyc  = +document.getElementById('f-fyc').value;
+  const d    = +document.getElementById('f-d').value;   // mm
+  const t    = +document.getElementById('f-t').value;   // mm
+  const ws   = +document.getElementById('f-ws').value;  // kg/m
+  const ixs  = +document.getElementById('f-ixs').value; // cm⁴
+  const sxs  = +document.getElementById('f-sxs').value; // cm³
+  const dbl  = +document.getElementById('f-double').value;
+  const Es   = 2040000; // kg/cm²（鋼材彈性係數）
+
+  // Wx1 = WL1 × SH（無額外係數，風壓值已含荷載組合）
+  const Wx1 = wl1 * sh;
+  const Mx  = (1/8) * Wx1 * sv * sv;   // kg.m
+  const Vx  = (1/2) * Wx1 * sv;        // kg
+
+  // fvx 分母：4區用 2d·t，5區/其他用 d·t（跟著計算書）
+  const fvxMult  = +document.getElementById('f-fvx-denom').value;
+  const fvxDenom = fvxMult * (d/10) * (t/10);
+  const fvxLabel = fvxMult === 2 ? '2d·t' : 'd·t';
+  const fbx = Mx * 100 / (dbl * sxs);  // kg/cm²
+  const fvx = Vx / fvxDenom;            // kg/cm²
+  const Fb  = fyc * 0.6;
+  const Fv  = fyc * 0.4;
+
+  // 撓度計算（sv 單位 m → cm：×100）
+  const sv_cm = sv * 100;
+  const Wx1_cm = Wx1 / 100; // kg/cm（Wx1 是 kg/m）
+  const delta_all = sv_cm / 240 + 0.635; // cm（6.35mm = 0.635cm）
+  const delta_max = (5 * Wx1_cm * Math.pow(sv_cm, 4)) / (384 * Es * ixs); // cm
+  const okDefl  = delta_max <= delta_all;
+
+  const okBend  = fbx <= Fb;
+  const okShear = fvx <= Fv;
+  const allOk   = okBend && okShear && okDefl;
+
+  // 存全域供角鐵帶入
+  window._frameResult = { Vx, ws, sv, sh };
+
+  const html = `
+    <div class="result-header ${allOk?'ok-header':'ng-header'}">
+      ${allOk
+        ? '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 彎曲應力、剪應力、撓度 校核全部通過'
+        : '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 校核不通過，請調整斷面或間距'}
+    </div>
+    <div class="result-body">
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-item-label">等效風載 Wx1 = WL1 × SH</div>
+          <div class="result-item-value">${fmt(Wx1)} <span class="result-item-unit">kg/m</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">彎矩 Mx</div>
+          <div class="result-item-value">${fmt(Mx)} <span class="result-item-unit">kg.m</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">剪力 Vx</div>
+          <div class="result-item-value">${fmt(Vx)} <span class="result-item-unit">kg</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">彎曲應力 fbx</div>
+          <div class="result-item-value" style="color:${okBend?'var(--ok)':'var(--ng)'}">${fmt(fbx)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">剪應力 fvx（${fvxLabel}）</div>
+          <div class="result-item-value" style="color:${okShear?'var(--ok)':'var(--ng)'}">${fmt(fvx)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">容許彎曲 Fb = 0.6Fyc</div>
+          <div class="result-item-value">${fmt(Fb)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">容許剪力 Fv = 0.4Fyc</div>
+          <div class="result-item-value">${fmt(Fv)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">利用率 fbx/Fb</div>
+          <div class="result-item-value" style="color:${okBend?'var(--ok)':'var(--ng)'}">${(fbx/Fb*100).toFixed(1)} <span class="result-item-unit">%</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">撓度 δmax</div>
+          <div class="result-item-value" style="color:${okDefl?'var(--ok)':'var(--ng)'}">${(delta_max*10).toFixed(3)} <span class="result-item-unit">mm</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">容許撓度 δall = SV/240 + 6.35</div>
+          <div class="result-item-value">${(delta_all*10).toFixed(3)} <span class="result-item-unit">mm</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">撓度利用率</div>
+          <div class="result-item-value" style="color:${okDefl?'var(--ok)':'var(--ng)'}">${(delta_max/delta_all*100).toFixed(1)} <span class="result-item-unit">%</span></div>
+        </div>
+      </div>
+      <div class="check-row ${okBend?'ok':'ng'}">
+        ${okBend?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+        彎曲應力：fbx = ${fmt(fbx)} ${okBend?'≤':'>'} Fb = ${fmt(Fb)} kg/cm² → ${okBend?'OK ✓':'NG ✗'}
+      </div>
+      <div class="check-row ${okShear?'ok':'ng'}">
+        ${okShear?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+        剪應力：fvx = ${fmt(fvx)} ${okShear?'≤':'>'} Fv = ${fmt(Fv)} kg/cm² → ${okShear?'OK ✓':'NG ✗'}
+      </div>
+      <div class="check-row ${okDefl?'ok':'ng'}">
+        ${okDefl?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+        撓度：δmax = ${(delta_max*10).toFixed(3)} ${okDefl?'≤':'>'} δall = ${(delta_all*10).toFixed(3)} mm → ${okDefl?'OK ✓':'NG ✗'}
+      </div>
+      <div class="result-formula">
+        Wx1 = WL1 × SH = ${wl1} × ${sh} = ${fmt(Wx1)} kg/m<br>
+        Mx = 1/8 × Wx1 × SV² = 1/8 × ${fmt(Wx1)} × ${sv}² = ${fmt(Mx)} kg.m<br>
+        Vx = 1/2 × Wx1 × SV = 1/2 × ${fmt(Wx1)} × ${sv} = ${fmt(Vx)} kg<br>
+        fbx = Mx×100 / (${dbl>1?dbl+'×':''}Sxs) = ${fmt(Mx)}×100 / ${dbl>1?dbl+'×':''}${sxs} = ${fmt(fbx)} kg/cm²<br>
+        fvx = Vx / ${fvxLabel} = ${fmt(Vx)} / (${fvxMult===2?'2×':''}${(d/10).toFixed(2)}×${(t/10).toFixed(2)}) = ${fmt(fvx)} kg/cm²<br>
+        δall = SV/240 + 6.35mm = ${sv*1000}/240 + 6.35 = ${(delta_all*10).toFixed(3)} mm<br>
+        δmax = 5×Wx1×SV⁴ / (384×Es×Ixs) = ${(delta_max*10).toFixed(3)} mm
+      </div>
+    </div>`;
+
+  const panel = document.getElementById('frame-result');
+  panel.innerHTML = html;
+  panel.className = 'result-panel show';
+
+  // 自動填入角鐵的 Vx / Ws / SV / SH
+  document.getElementById('a-vx').value = Vx.toFixed(3);
+  document.getElementById('a-ws').value = ws;
+  document.getElementById('a-sv').value = sv;
+  document.getElementById('a-sh').value = sh;
+}
+
+// = Angle: 板材選擇 =
+function onMatChange() {
+  const key = document.getElementById('a-mat').value;
+  // 顯示/隱藏對應輸入列
+  document.getElementById('mat-sandwich-row').style.display = key === 'sandwich' ? '' : 'none';
+  document.getElementById('mat-alu-row').style.display      = key === 'alupanel'  ? '' : 'none';
+  document.getElementById('mat-glass-row').style.display    = key === 'glass'     ? '' : 'none';
+  const wgField = document.getElementById('a-wg');
+  const note    = document.getElementById('mat-formula-note');
+  if (key === 'custom') {
+    wgField.readOnly = false;
+    note.style.display = 'none';
+    wgField.focus();
+  } else {
+    wgField.readOnly = true;
+    note.style.display = 'block';
+    calcMatWg();
+  }
+}
+
+function calcMatWg() {
+  const key  = document.getElementById('a-mat').value;
+  const wgField = document.getElementById('a-wg');
+  const note    = document.getElementById('mat-formula-note');
+  const SF = 1.5; // 安全係數
+  let wg, noteText;
+
+  if (key === 'sandwich') {
+    const base = +document.getElementById('a-mat-sandwich-base').value || 16.9;
+    wg = base * SF;
+    noteText = `Wg = 基本重量 × 安全係數 = ${base} × ${SF} = ${wg.toFixed(2)} kg/m²`;
+
+  } else if (key === 'alupanel') {
+    const t = +document.getElementById('a-mat-alu-t').value || 3; // mm
+    const density = 2.7; // g/cm³ = kg/dm³
+    // t mm = t/10 cm；面積 1 m² = 100×100 cm²
+    // 重量 = density(g/cm³) × t(cm) × 10000(cm²) / 1000 = density × t × 10  kg/m²
+    const raw = density * (t / 10) * 10000 / 1000;
+    wg = raw * SF;
+    noteText = `Wg = 密度 × 厚度 × 安全係數 = ${density} g/cm³ × ${t} mm × 1.5`
+             + ` = ${raw.toFixed(3)} × 1.5 = ${wg.toFixed(2)} kg/m²`;
+
+  } else if (key === 'glass') {
+    const t = +document.getElementById('a-mat-glass-t').value || 8; // mm
+    const density = 2.5; // g/cm³
+    const raw = density * (t / 10) * 10000 / 1000;
+    wg = raw * SF;
+    noteText = `Wg = 密度 × 厚度 × 安全係數 = ${density} g/cm³ × ${t} mm × 1.5`
+             + ` = ${raw.toFixed(3)} × 1.5 = ${wg.toFixed(2)} kg/m²`;
+  } else {
+    return;
+  }
+
+  wgField.value = wg.toFixed(2);
+  note.textContent = noteText;
+}
+
+// = Angle Preset =
+const ANGLE_DB = {
+  L125_75_7: { label:'L-125×75×7',  dv:125, tv:7, as:13.62, sx:26.1  },
+  L150_90_9: { label:'L-150×90×9',  dv:150, tv:9, as:21.20, sx:46.5  },
+  L75_75_6:  { label:'L-75×75×6',   dv:75,  tv:6, as:8.49,  sx:8.92  },
+};
+function applyAnglePreset() {
+  const key = document.getElementById('a-angle-preset').value;
+  if (!key || key==='custom') return;
+  const a = ANGLE_DB[key];
+  document.getElementById('a-d').value  = a.dv;
+  document.getElementById('a-tv').value = a.tv;
+  document.getElementById('a-as').value = a.as;
+  document.getElementById('a-sx').value = a.sx;
+}
+
+// = Angle Calc =
+function calcAngle() {
+  const Vx  = +document.getElementById('a-vx').value;
+  const ws  = +document.getElementById('a-ws').value;
+  const wg  = +document.getElementById('a-wg').value;
+  const sv  = +document.getElementById('a-sv').value;
+  const sh  = +document.getElementById('a-sh').value;
+  const ext = +document.getElementById('a-ext').value;  // mm = L1
+  const dv  = +document.getElementById('a-d').value;    // mm
+  const tv  = +document.getElementById('a-tv').value;   // mm
+  const As  = +document.getElementById('a-as').value;   // cm²
+  const Sx  = +document.getElementById('a-sx').value;   // cm³
+  const Fy  = +document.getElementById('a-fy').value;
+
+  const RHmax = 2 * Vx;                          // kg
+  const Rvmax = ws * sv + wg * sv * sh;           // kg
+  const Mmax  = Rvmax * (ext / 1000);             // kg.m（L1 為外伸距離）
+
+  // 技師公式
+  const dvcm = dv / 10;
+  const tvcm = tv / 10;
+  const fvx_a = Rvmax / (dvcm * tvcm);                       // kg/cm²
+  const fbx_a = RHmax / As + (Mmax * 100) / Sx;              // kg/cm²（Mmax kg.m → ×100 → kg.cm）
+
+  const Fb = Fy * 0.6;
+  const Fv = Fy * 0.4;
+  const okFb = fbx_a <= Fb;
+  const okFv = fvx_a <= Fv;
+  const allOk = okFb && okFv;
+
+  const html = `
+    <div class="result-header ${allOk?'ok-header':'ng-header'}">
+      ${allOk
+        ? '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 角鐵固定點校核通過'
+        : '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 校核不通過'}
+    </div>
+    <div class="result-body">
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-item-label">水平反力 RHmax = 2Vx</div>
+          <div class="result-item-value">${fmt(RHmax)} <span class="result-item-unit">kg</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">垂直反力 Rvmax</div>
+          <div class="result-item-value">${fmt(Rvmax)} <span class="result-item-unit">kg</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">彎矩 Mmax = Rvmax × L1</div>
+          <div class="result-item-value">${fmt(Mmax)} <span class="result-item-unit">kg.m</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">彎曲應力 fbx</div>
+          <div class="result-item-value" style="color:${okFb?'var(--ok)':'var(--ng)'}">${fmt(fbx_a)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">剪應力 fvx</div>
+          <div class="result-item-value" style="color:${okFv?'var(--ok)':'var(--ng)'}">${fmt(fvx_a)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">Fb = 0.6Fy</div>
+          <div class="result-item-value">${fmt(Fb)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">Fv = 0.4Fy</div>
+          <div class="result-item-value">${fmt(Fv)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">利用率 fbx/Fb</div>
+          <div class="result-item-value" style="color:${okFb?'var(--ok)':'var(--ng)'}">${(fbx_a/Fb*100).toFixed(1)} <span class="result-item-unit">%</span></div>
+        </div>
+      </div>
+      <div class="check-row ${okFb?'ok':'ng'}">
+        ${okFb?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+        彎曲應力：fbx = ${fmt(fbx_a)} ${okFb?'≤':'>'} Fb = ${fmt(Fb)} kg/cm² → ${okFb?'OK ✓':'NG ✗'}
+      </div>
+      <div class="check-row ${okFv?'ok':'ng'}">
+        ${okFv?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+        剪應力：fvx = ${fmt(fvx_a)} ${okFv?'≤':'>'} Fv = ${fmt(Fv)} kg/cm² → ${okFv?'OK ✓':'NG ✗'}
+      </div>
+      <div class="result-formula">
+        RHmax = 2 × Vx = 2 × ${fmt(Vx)} = ${fmt(RHmax)} kg<br>
+        Rvmax = Ws×SV + Wg×SV×SH = ${ws}×${sv} + ${wg}×${sv}×${sh} = ${fmt(Rvmax)} kg<br>
+        Mmax = Rvmax × L1 = ${fmt(Rvmax)} × ${(ext/1000).toFixed(3)} = ${fmt(Mmax)} kg.m<br>
+        fvx = Rvmax / (dv×tv) = ${fmt(Rvmax)} / (${dvcm.toFixed(1)}×${tvcm.toFixed(1)}) = ${fmt(fvx_a)} kg/cm²<br>
+        fbx = RHmax/As + Mmax×100/Sx = ${fmt(RHmax)}/${As} + ${fmt(Mmax*100)}/${Sx} = ${fmt(fbx_a)} kg/cm²
+      </div>
+    </div>`;
+
+  const panel = document.getElementById('angle-result');
+  panel.innerHTML = html;
+  panel.className = 'result-panel show';
+}
+
+// = Weld: 板材選擇 =
+function onWeldMatChange() {
+  const key = document.getElementById('w-mat').value;
+  document.getElementById('wmat-sandwich-row').style.display = key === 'sandwich' ? '' : 'none';
+  document.getElementById('wmat-alu-row').style.display      = key === 'alupanel'  ? '' : 'none';
+  document.getElementById('wmat-glass-row').style.display    = key === 'glass'     ? '' : 'none';
+  const wgField = document.getElementById('w-wg');
+  const note    = document.getElementById('wmat-formula-note');
+  if (key === 'custom') {
+    wgField.readOnly = false;
+    note.style.display = 'none';
+    wgField.focus();
+  } else {
+    wgField.readOnly = true;
+    note.style.display = 'block';
+    calcWeldMatWg();
+  }
+}
+
+function calcWeldMatWg() {
+  const key = document.getElementById('w-mat').value;
+  const wgField = document.getElementById('w-wg');
+  const note    = document.getElementById('wmat-formula-note');
+  const SF = 1.5;
+  let wg, noteText;
+
+  if (key === 'sandwich') {
+    const base = +document.getElementById('w-mat-sandwich-base').value || 16.9;
+    wg = base * SF;
+    noteText = `Wg = ${base} × ${SF} = ${wg.toFixed(2)} kg/m²`;
+  } else if (key === 'alupanel') {
+    const t = +document.getElementById('w-mat-alu-t').value || 3;
+    const raw = 2.7 * (t / 10) * 10000 / 1000;
+    wg = raw * SF;
+    noteText = `Wg = 2.7 g/cm³ × ${t} mm × 1.5 = ${raw.toFixed(3)} × 1.5 = ${wg.toFixed(2)} kg/m²`;
+  } else if (key === 'glass') {
+    const t = +document.getElementById('w-mat-glass-t').value || 8;
+    const raw = 2.5 * (t / 10) * 10000 / 1000;
+    wg = raw * SF;
+    noteText = `Wg = 2.5 g/cm³ × ${t} mm × 1.5 = ${raw.toFixed(3)} × 1.5 = ${wg.toFixed(2)} kg/m²`;
+  } else { return; }
+
+  wgField.value = wg.toFixed(2);
+  note.textContent = noteText;
+}
+
+// = Weld: 從骨架帶入 =
+function importFrameToWeld() {
+  const r = window._frameResult;
+  if (!r) {
+    alert('請先執行骨架計算！');
+    return;
+  }
+  document.getElementById('w-vx').value = r.Vx.toFixed(3);
+  document.getElementById('w-ws').value = r.ws;
+  document.getElementById('w-sv').value = r.sv;
+  document.getElementById('w-sh').value = r.sh;
+  // 帶入後自動計算反力
+  deriveWeldLoads();
+}
+
+function deriveWeldLoads() {
+  const Vx  = +document.getElementById('w-vx').value;
+  const ws  = +document.getElementById('w-ws').value;
+  const wg  = +document.getElementById('w-wg').value;
+  const sv  = +document.getElementById('w-sv').value;
+  const sh  = +document.getElementById('w-sh').value;
+  const ext = +document.getElementById('w-ext').value; // mm
+  if (!Vx || !sv) { alert('請先填入 Vx 與 SV'); return; }
+  const RHmax = 2 * Vx;
+  const Rvmax = ws * sv + wg * sv * sh;
+  const Mmax  = Rvmax * (ext / 1000);
+  document.getElementById('w-rh').value   = RHmax.toFixed(3);
+  document.getElementById('w-rv').value   = Rvmax.toFixed(3);
+  document.getElementById('w-mmax').value = Mmax.toFixed(3);
+}
+
+// = Weld Calc =
+function calcWeld() {
+  const RH   = +document.getElementById('w-rh').value;
+  const Rv   = +document.getElementById('w-rv').value;
+  const Mmax = +document.getElementById('w-mmax').value; // kg.m → to kg.cm ×100
+  const Lw   = +document.getElementById('w-lw').value;   // cm
+  const sides= +document.getElementById('w-sides').value;
+  const Fuw  = +document.getElementById('w-fuw').value;
+
+  const totalLw = Lw * sides;
+  const IIw = (1/12 * Math.pow(Lw, 3)) * sides;
+  const ft = (Mmax * 100 * (Lw/2) / IIw) + Rv / totalLw;
+  const fv = RH / totalLw;
+  const Sreq = Math.sqrt(fv*fv + ft*ft) / (0.707 * 0.3 * Fuw) * 10; // mm
+
+  const MAX_WELD = 12; // mm typical
+  const okS = Sreq <= MAX_WELD;
+
+  const html = `
+    <div class="result-header ${okS?'ok-header':'ng-header'}">
+      ${okS
+        ? '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 焊道計算完成'
+        : '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 焊喉需求較大，請確認'}
+    </div>
+    <div class="result-body">
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-item-label">焊道慣性矩 IIw</div>
+          <div class="result-item-value">${fmt(IIw)} <span class="result-item-unit">cm⁴</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">正向應力 ft</div>
+          <div class="result-item-value">${fmt(ft)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">剪應力 fv</div>
+          <div class="result-item-value">${fmt(fv)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">需求焊喉 Sreq</div>
+          <div class="result-item-value" style="color:var(--accent)">${fmt(Sreq)} <span class="result-item-unit">mm</span></div>
+        </div>
+      </div>
+      <div class="check-row ok">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        焊喉需求 Sreq = ${fmt(Sreq)} mm → 建議採用 ${Math.ceil(Sreq + 1)} mm 焊腳
+      </div>
+      <div class="result-formula">
+        IIw = (1/12 × Lw³) × ${sides}邊 = ${fmt(IIw)} cm⁴<br>
+        ft = Mmax×100×(Lw/2)/IIw + Rv/(Lw×${sides}) = ${fmt(ft)} kg/cm²<br>
+        fv = RH / (Lw × ${sides}) = ${fmt(RH)} / ${totalLw} = ${fmt(fv)} kg/cm²<br>
+        Sreq = √(fv²+ft²) / (0.707 × 0.3 × Fuw) × 10 = ${fmt(Sreq)} mm
+      </div>
+    </div>`;
+
+  const panel = document.getElementById('weld-result');
+  panel.innerHTML = html;
+  panel.className = 'result-panel show';
+}
+
+// = Glass Type =
+const GLASS_TYPE_DB = {
+  tempered:          { label:'強化玻璃',       ag:1200, note:'強化玻璃 αg = 1,200 kg/cm²，單片計算' },
+  laminated_tempered:{ label:'強化膠合',       ag:1200, note:'強化膠合玻璃，以外片厚度計算，αg = 1,200 kg/cm²' },
+  heat_strength:     { label:'半強化玻璃',     ag:750,  note:'半強化玻璃 αg = 750 kg/cm²，單片計算' },
+  laminated_hs:      { label:'半強化膠合',     ag:750,  note:'半強化膠合玻璃，以外片厚度計算，αg = 750 kg/cm²' },
+  annealed:          { label:'一般退火玻璃',   ag:500,  note:'退火玻璃 αg = 500 kg/cm²，單片計算' },
+  custom:            { label:'自訂',           ag:null, note:'請自行輸入容許應力' },
+};
+const LAMINATED_TYPES = new Set(['laminated_tempered','laminated_hs']);
+
+function onGlassTypeChange() {
+  const key  = document.getElementById('g-type').value;
+  const db   = GLASS_TYPE_DB[key];
+  const isLam = LAMINATED_TYPES.has(key);
+
+  document.getElementById('g-single-row').style.display = isLam ? 'none' : '';
+  document.getElementById('g-lam-row').style.display    = isLam ? ''     : 'none';
+  document.getElementById('g-type-note').textContent    = db.note;
+
+  const agField = document.getElementById('g-ag');
+  if (key === 'custom') {
+    agField.readOnly = false;
+    agField.focus();
+  } else {
+    agField.value    = db.ag;
+    agField.readOnly = true;
+  }
+  updateGlassRatio();
+}
+
+function syncLamH1() {
+  // 膠合時 h1 計算用外片厚度
+  const outer = document.getElementById('g-h1-outer').value;
+  document.getElementById('g-h1').value = outer;
+}
+
+
+const GLASS_TABLE = [
+  { minR:1.0,  maxR:1.1,  aa:0.044, bb:0.394 },
+  { minR:1.1,  maxR:1.2,  aa:0.053, bb:0.421 },
+  { minR:1.2,  maxR:1.3,  aa:0.062, bb:0.443 },
+  { minR:1.3,  maxR:1.4,  aa:0.071, bb:0.462 },
+  { minR:1.4,  maxR:1.5,  aa:0.080, bb:0.478 },
+  { minR:1.5,  maxR:1.6,  aa:0.088, bb:0.491 },
+  { minR:1.6,  maxR:1.7,  aa:0.095, bb:0.503 },
+  { minR:1.7,  maxR:1.8,  aa:0.100, bb:0.530 },
+  { minR:1.8,  maxR:2.0,  aa:0.107, bb:0.543 },
+  { minR:2.0,  maxR:2.2,  aa:0.111, bb:0.558 },
+  { minR:2.2,  maxR:2.5,  aa:0.120, bb:0.600 },
+  { minR:2.5,  maxR:3.0,  aa:0.125, bb:0.623 },
+  { minR:3.0,  maxR:99.9, aa:0.133, bb:0.667 },
+];
+
+function buildRatioTable(ratio) {
+  const tbody = document.getElementById('ratio-table-body');
+  tbody.innerHTML = '';
+  GLASS_TABLE.forEach(row => {
+    const active = ratio >= row.minR && ratio < row.maxR;
+    const tr = document.createElement('tr');
+    if (active) tr.className = 'highlighted';
+    tr.innerHTML = `<td>${row.minR.toFixed(1)} ~ ${row.maxR >= 99 ? '∞' : row.maxR.toFixed(1)}</td><td>${row.aa}</td><td>${row.bb}</td>`;
+    tbody.appendChild(tr);
+    if (active) {
+      document.getElementById('g-aa').value = row.aa;
+      document.getElementById('g-bb').value = row.bb;
+    }
+  });
+}
+
+function updateGlassRatio() {
+  const sv = +document.getElementById('g-sv').value;
+  const sh = +document.getElementById('g-sh').value;
+  if (!sv || !sh) return;
+  const r = sv / sh;
+  document.getElementById('g-ratio').value = r.toFixed(4);
+  buildRatioTable(r);
+}
+
+function calcGlass() {
+  const gtype = document.getElementById('g-type').value;
+  const isLam = LAMINATED_TYPES.has(gtype);
+  const sv    = +document.getElementById('g-sv').value;
+  const sh    = +document.getElementById('g-sh').value;
+  const h1    = isLam
+    ? +document.getElementById('g-h1-outer').value
+    : +document.getElementById('g-h1').value;
+  const wlg   = +document.getElementById('g-wlg').value;
+  const Eg    = +document.getElementById('g-eg').value;
+  const aa    = +document.getElementById('g-aa').value;
+  const bb    = +document.getElementById('g-bb').value;
+  const alphaG = +document.getElementById('g-ag').value;
+
+  const glassLabel = GLASS_TYPE_DB[gtype]?.label || '自訂';
+  const h1label = isLam
+    ? `外片 ${h1} mm（膠合，取外片計算）`
+    : `${h1} mm`;
+
+  const alphaCkg = (bb * (wlg * sh * sh / (h1 * h1))) / 10000;
+  const deltaC   = (aa * (wlg * Math.pow(sh, 4) / (Eg * Math.pow(h1, 3)))) / 10000;
+  const deltaAll = sh / 60;
+
+  const okStress = alphaCkg <= alphaG;
+  const okDefl   = deltaC <= deltaAll;
+  const allOk    = okStress && okDefl;
+
+  const html = `
+    <div class="result-header ${allOk?'ok-header':'ng-header'}">
+      ${allOk
+        ? '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 玻璃應力 & 撓度 校核通過'
+        : '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 校核不通過，請調整玻璃厚度或尺寸'}
+    </div>
+    <div class="result-body">
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-item-label">玻璃種類</div>
+          <div class="result-item-value" style="font-size:13px">${glassLabel}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">計算厚度 h1</div>
+          <div class="result-item-value" style="font-size:13px">${h1label}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">長寬比 SV/SH</div>
+          <div class="result-item-value">${(sv/sh).toFixed(4)}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">採用 αα</div>
+          <div class="result-item-value">${aa}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">採用 ββ</div>
+          <div class="result-item-value">${bb}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">應力 αc</div>
+          <div class="result-item-value" style="color:${okStress?'var(--ok)':'var(--ng)'}">${fmt(alphaCkg)} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">容許應力 αg</div>
+          <div class="result-item-value">${alphaG} <span class="result-item-unit">kg/cm²</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">利用率 αc/αg</div>
+          <div class="result-item-value" style="color:${okStress?'var(--ok)':'var(--ng)'}">${(alphaCkg/alphaG*100).toFixed(1)} <span class="result-item-unit">%</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">撓度 δc</div>
+          <div class="result-item-value" style="color:${okDefl?'var(--ok)':'var(--ng)'}">${fmt(deltaC)} <span class="result-item-unit">mm</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">容許撓度 SH/60</div>
+          <div class="result-item-value">${fmt(deltaAll)} <span class="result-item-unit">mm</span></div>
+        </div>
+        <div class="result-item">
+          <div class="result-item-label">撓度利用率</div>
+          <div class="result-item-value" style="color:${okDefl?'var(--ok)':'var(--ng)'}">${(deltaC/deltaAll*100).toFixed(1)} <span class="result-item-unit">%</span></div>
+        </div>
+      </div>
+      <div class="check-row ${okStress?'ok':'ng'}">
+        ${okStress?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+        應力：αc = ${fmt(alphaCkg)} ${okStress?'≤':'>'} αg = ${alphaG} kg/cm² → ${okStress?'OK ✓':'NG ✗'}
+      </div>
+      <div class="check-row ${okDefl?'ok':'ng'}">
+        ${okDefl?'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>':'<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+        撓度：δc = ${fmt(deltaC)} ${okDefl?'≤':'>'} δall = SH/60 = ${fmt(deltaAll)} mm → ${okDefl?'OK ✓':'NG ✗'}
+      </div>
+      <div class="result-formula">
+        αc = ββ × (WLG × SH² / h1²) / 10000 = ${bb} × (${wlg} × ${sh}² / ${h1}²) / 10000 = ${fmt(alphaCkg)} kg/cm²<br>
+        δc = αα × (WLG × SH⁴ / (Eg × h1³)) / 10000 = ${aa} × (${wlg} × ${sh}⁴ / (${Eg} × ${h1}³)) / 10000 = ${fmt(deltaC)} mm<br>
+        δall = SH / 60 = ${sh} / 60 = ${fmt(deltaAll)} mm
+      </div>
+    </div>`;
+
+  const panel = document.getElementById('glass-result');
+  panel.innerHTML = html;
+  panel.className = 'result-panel show';
+}
+
+// = Util =
+function fmt(n) {
+  if (n === undefined || isNaN(n)) return '-';
+  return parseFloat(n.toFixed(3)).toLocaleString('zh-TW');
+}
+
+// = Init =
+window.onload = function() {
+  onMatChange();
+  onWeldMatChange();
+  onGlassTypeChange();
+  updateGlassRatio();
+  onCityChange();
+  onExposureChange();
+  onGTypeChange();
+  document.getElementById('w1-cp').addEventListener('change', onCpChange);
+};
+</script>
+</body>
+</html>
